@@ -13,9 +13,11 @@ from matplotlib import pyplot
 import numpy
 
 
-# date-time parsing function for loading the dataset
-def parser(x):
-    return datetime.strptime('190' + x, '%Y-%m')
+def get_price_by_id(id, df):
+    selected_df = df[(id-1) * 48:(id-1) * 48 + 48]
+    raw_values = selected_df['price'].values
+    raw_values = raw_values.reshape(len(raw_values),)
+    return raw_values
 
 
 # frame a sequence as a supervised learning problem
@@ -87,17 +89,20 @@ def forecast_lstm(model, batch_size, X):
 
 
 # load dataset 将数据读取为series
-series = read_csv('./test_dataset/shampoo-sales.csv', header=0, parse_dates=[0], index_col=0, squeeze=True,
-                  date_parser=parser)
+# series = read_csv('./test_dataset/test_data.csv', header=0, parse_dates=[0], index_col=0, squeeze=True)
 
 # transform data to be stationary 将series转为np数组，进行差分后再转换回来
-raw_values = series.values
+# raw_values = series.values
+
+df = read_csv('./test_dataset/merge_data.csv', usecols=[1, 2])
+
+raw_values = get_price_by_id(1, df)
+
 diff_values = difference(raw_values, 1)
 
 # transform data to be supervised learning 转为监督学习后将序列转换为np数组
 supervised = timeseries_to_supervised(diff_values, 1)
 supervised_values = supervised.values
-
 
 # split data into train and test-sets
 train, test = supervised_values[0:-12], supervised_values[-12:]
@@ -105,9 +110,8 @@ train, test = supervised_values[0:-12], supervised_values[-12:]
 # transform the scale of the data  两个都为两列的np数组
 scaler, train_scaled, test_scaled = scale(train, test)
 
-
 # fit the model
-lstm_model = fit_lstm(train_scaled, 1, 3000, 4)
+lstm_model = fit_lstm(train_scaled, 1, 1500, 4)
 
 # forecast the entire training dataset to build up state for forecasting
 train_reshaped = train_scaled[:, 0].reshape(len(train_scaled), 1, 1)
